@@ -70,19 +70,23 @@ class InputHandler:
         """
         logging.info(f"Handling command: {command} with data: {data}")
         if command == 'space':
-            self.text_input += ' '
+            self.loop.call_soon_threadsafe(
+                self.command_queue.put_nowait, ('space', None)
+            )
         elif command == 'enter':
-            self.text_ready.set()
-            # You can process the entered text here
+            self.loop.call_soon_threadsafe(
+                self.command_queue.put_nowait, ('enter', self.text_input)
+            )
             logging.info(f"User Input: {self.text_input}")
-            self.text_input = ""
         elif command == 'r':
             logging.info("Handled 'r' command.")
-            # Implement the functionality for 'r' command here
-            pass
+            self.loop.call_soon_threadsafe(
+                self.command_queue.put_nowait, ('r', None)
+            )
         elif command == 'q':
-            logging.info("Handled 'q' command. Stopping InputHandler.")
-            self.running = False
+            self.loop.call_soon_threadsafe(
+                self.command_queue.put_nowait, ('q', None)
+            )
         elif isinstance(command, str):
             self.text_input += command
 
