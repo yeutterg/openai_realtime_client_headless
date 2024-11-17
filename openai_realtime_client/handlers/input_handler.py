@@ -71,28 +71,27 @@ class InputHandler:
         logging.info(f"InputHandler: Handling command: {command} with data: {data}")
         if command == 'space':
             logging.info("InputHandler: Handling 'space' command.")
-            self.loop.call_soon_threadsafe(
-                self.command_queue.put_nowait, ('space', None)
-            )
-            self.text_input = " "
+            self.perform_space_action()
+
         elif command == 'enter':
-            logging.info("InputHandler: Handling 'r' command.")
+            logging.info("InputHandler: Handling 'enter' command.")
             self.loop.call_soon_threadsafe(
                 self.command_queue.put_nowait, ('enter', self.text_input)
             )
             self.text_input = ""
+
         elif command == 'r':
             logging.info("InputHandler: Handling 'r' command.")
-            self.loop.call_soon_threadsafe(
-                self.command_queue.put_nowait, ('r', None)
-            )
+            self.perform_r_action()
             self.text_input = ""
+
         elif command == 'q':
             logging.info("InputHandler: Handling 'q' command.")
             self.loop.call_soon_threadsafe(
                 self.command_queue.put_nowait, ('q', None)
             )
             self.running = False
+
         elif isinstance(command, str):
             self.text_input += command
             logging.info(f"InputHandler: Text input updated to: '{self.text_input}'")
@@ -131,3 +130,19 @@ class InputHandler:
         """
         logging.info("Stopping InputHandler.")
         self.running = False
+
+    def perform_space_action(self):
+        """
+        Handles the action for the 'space' command.
+        """
+        logging.info("Performing space action.")
+        # Implement the desired functionality here
+        # For example, sending a space character or triggering a specific event
+
+    def perform_r_action(self):
+        """
+        Handles the action for the 'r' command.
+        """
+        logging.info("Performing 'r' action.")
+        # Implement the desired functionality here
+        # For example, refreshing the input or resetting states
