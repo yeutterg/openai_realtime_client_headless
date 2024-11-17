@@ -49,41 +49,46 @@ class InputHandler:
                     result = task.result()
                     if isinstance(result, tuple):
                         # Internal command
-                        command, data = result
-                        await self.handle_command(command, data)
+                        await self.handle_input('command', result)
                     else:
                         # External button press
-                        button = result
-                        await self.handle_button_press(button)
+                        await self.handle_input('button', result)
             except Exception as e:
                 logging.error(f"Error processing commands: {e}")
 
         logging.info("InputHandler stopped processing commands.")
 
-    async def handle_command(self, command, data):
+    async def handle_input(self, input_type, input_value):
         """
-        Handles internal commands.
+        Handles both internal commands and external button press events.
 
         Args:
-            command (str): The command type.
-            data (Any): Additional data associated with the command.
+            input_type (str): The type of input ('command' or 'button').
+            input_value (Any): The value associated with the input (command or button).
         """
-        logging.info(f"InputHandler: Handling command: {command} with data: {data}")
+        logging.info(f"InputHandler: Handling {input_type}: {input_value}")
+        
+        if input_type == 'command':
+            command, data = input_value
+        else:  # input_type == 'button'
+            command = input_value
+            data = None
+
         if command == 'space':
             logging.info("InputHandler: Handling 'space' command.")
-            self.perform_space_action()
+            self.text_input += ' '
 
         elif command == 'enter':
             logging.info("InputHandler: Handling 'enter' command.")
             self.loop.call_soon_threadsafe(
                 self.command_queue.put_nowait, ('enter', self.text_input)
             )
-            self.text_input = ""
 
         elif command == 'r':
             logging.info("InputHandler: Handling 'r' command.")
-            self.perform_r_action()
-            self.text_input = ""
+            self.loop.call_soon_threadsafe(
+                self.command_queue.put_nowait, ('r', self.text_input)
+            )
 
         elif command == 'q':
             logging.info("InputHandler: Handling 'q' command.")
@@ -95,26 +100,6 @@ class InputHandler:
         elif isinstance(command, str):
             self.text_input += command
             logging.info(f"InputHandler: Text input updated to: '{self.text_input}'")
-
-    async def handle_button_press(self, button):
-        """
-        Handles external button press events.
-
-        Args:
-            button (str): The button identifier.
-        """
-        logging.info(f"Handling button press: {button}")
-        if button == 'space':
-            await self.handle_command('space', None)
-        elif button == 'enter':
-            await self.handle_command('enter', None)
-        elif button == 'r':
-            await self.handle_command('r', None)
-        elif button == 'q':
-            await self.handle_command('q', None)
-        else:
-            # Handle other buttons or characters
-            await self.handle_command(button, None)
 
     def start(self):
         """
@@ -130,19 +115,3 @@ class InputHandler:
         """
         logging.info("Stopping InputHandler.")
         self.running = False
-
-    def perform_space_action(self):
-        """
-        Handles the action for the 'space' command.
-        """
-        logging.info("Performing space action.")
-        # Implement the desired functionality here
-        # For example, sending a space character or triggering a specific event
-
-    def perform_r_action(self):
-        """
-        Handles the action for the 'r' command.
-        """
-        logging.info("Performing 'r' action.")
-        # Implement the desired functionality here
-        # For example, refreshing the input or resetting states
