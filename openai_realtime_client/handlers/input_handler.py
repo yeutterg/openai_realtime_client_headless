@@ -1,48 +1,102 @@
 import asyncio
-from pynput import keyboard
-
 
 class InputHandler:
     """
-    Handles keyboard input for the chatbot.
+    Handles input for the chatbot in a headless environment.
 
-    This class is responsible for capturing keyboard input and translating it into commands for the chatbot.
-
-    Attributes:
-        text_input (str): The current text input from the user.
-        text_ready (asyncio.Event): An event that is set when the user has finished typing.
-        command_queue (asyncio.Queue): A queue that stores commands for the chatbot.
-        loop (asyncio.AbstractEventLoop): The event loop for the input handler.
+    Integrates with hardware-based button presses instead of using pynput.
     """
-    def __init__(self):
+    def __init__(self, external_queue: asyncio.Queue):
+        """
+        Initializes the InputHandler.
+
+        Args:
+            external_queue (asyncio.Queue): Queue to receive external button press events.
+        """
         self.text_input = ""
         self.text_ready = asyncio.Event()
         self.command_queue = asyncio.Queue()
-        self.loop = None
+        self.external_queue = external_queue
+        self.loop = asyncio.get_event_loop()
+        self.running = False
 
-    def on_press(self, key):
-        try:
-            if key == keyboard.Key.space:
-                self.loop.call_soon_threadsafe(
-                    self.command_queue.put_nowait, ('space', None)
-                )
-            elif key == keyboard.Key.enter:
-                self.loop.call_soon_threadsafe(
-                    self.command_queue.put_nowait, ('enter', self.text_input)
-                )
-                self.text_input = ""
-            elif key == keyboard.KeyCode.from_char('r'):
-                self.loop.call_soon_threadsafe(
-                    self.command_queue.put_nowait, ('r', None)
-                )
-            elif key == keyboard.KeyCode.from_char('q'):
-                self.loop.call_soon_threadsafe(
-                    self.command_queue.put_nowait, ('q', None)
-                )
-            elif hasattr(key, 'char'):
-                if key == keyboard.Key.backspace:
-                    self.text_input = self.text_input[:-1]
+    async def process_commands(self):
+        """
+        Asynchronously processes incoming commands from both internal and external sources.
+        """
+        while self.running:
+            # Wait for either internal commands or external button presses
+            done, pending = await asyncio.wait(
+                [
+                    asyncio.create_task(self.command_queue.get()),
+                    asyncio.create_task(self.external_queue.get())
+                ],
+                return_when=asyncio.FIRST_COMPLETED
+            )
+
+            for task in done:
+                result = task.result()
+                if isinstance(result, tuple):
+                    # Internal command
+                    command, data = result
+                    await self.handle_command(command, data)
                 else:
-                    self.text_input += key.char
-        except AttributeError:
+                    # External button press
+                    button = result
+                    await self.handle_button_press(button)
+
+    async def handle_command(self, command, data):
+        """
+        Handles internal commands.
+
+        Args:
+            command (str): The command type.
+            data (Any): Additional data associated with the command.
+        """
+        if command == 'space':
+            self.text_input += ' '
+        elif command == 'enter':
+            self.text_ready.set()
+            # You can process the entered text here
+            print(f"User Input: {self.text_input}")
+            self.text_input = ""
+        elif command == 'r':
+            # Handle 'r' command
             pass
+        elif command == 'q':
+            # Handle 'q' command (e.g., quit)
+            self.running = False
+        elif isinstance(command, str):
+            self.text_input += command
+
+    async def handle_button_press(self, button):
+        """
+        Handles external button press events.
+
+        Args:
+            button (str): The button identifier.
+        """
+        if button == 'space':
+            await self.handle_command('space', None)
+        elif button == 'enter':
+            await self.handle_command('enter', None)
+        elif button == 'r':
+            await self.handle_command('r', None)
+        elif button == 'q':
+            await self.handle_command('q', None)
+        else:
+            # Handle other buttons or characters
+            await self.handle_command(button, None)
+
+    def start(self):
+        """
+        Starts the input processing loop.
+        """
+        self.running = True
+        self.loop.create_task(self.process_commands())
+
+    def stop(self):
+        """
+        Stops the input processing loop.
+        """
+        self.running = False
