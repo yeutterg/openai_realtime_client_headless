@@ -74,23 +74,28 @@ class InputHandler:
             self.loop.call_soon_threadsafe(
                 self.command_queue.put_nowait, ('space', None)
             )
+            self.text_input = " "
         elif command == 'enter':
             logging.info("InputHandler: Handling 'r' command.")
             self.loop.call_soon_threadsafe(
                 self.command_queue.put_nowait, ('enter', self.text_input)
             )
+            self.text_input = ""
         elif command == 'r':
             logging.info("InputHandler: Handling 'r' command.")
             self.loop.call_soon_threadsafe(
                 self.command_queue.put_nowait, ('r', None)
             )
+            self.text_input = ""
         elif command == 'q':
             logging.info("InputHandler: Handling 'q' command.")
             self.loop.call_soon_threadsafe(
                 self.command_queue.put_nowait, ('q', None)
             )
+            self.running = False
         elif isinstance(command, str):
             self.text_input += command
+            logging.info(f"InputHandler: Text input updated to: '{self.text_input}'")
 
     async def handle_button_press(self, button):
         """
