@@ -3,8 +3,6 @@ import asyncio
 class InputHandler:
     """
     Handles input for the chatbot in a headless environment.
-
-    Integrates with hardware-based button presses instead of using pynput.
     """
     def __init__(self, external_queue: asyncio.Queue):
         """

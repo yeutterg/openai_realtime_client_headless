@@ -1,4 +1,16 @@
-# OpenAI Realtime API Client for Python
+# Headless OpenAI Realtime API Client for Python
+
+This is a fork of the [OpenAI Realtime API Client for Python](https://github.com/run-llama/openai_realtime_client) that removes the pynput dependency and allows the library to respond to hardware-based button presses on a Raspberry Pi microcontroller.
+
+The following files have been modified from the original library:
+* `.gitignore`
+* `openai_realtime_client/handlers/input_handler.py`
+* `pyproject.toml`
+* `README.md`
+
+The example files `examples/manual_cli.py` and `examples/streaming_cli.py` have NOT been modified to work with the headless setup.
+
+## Original README
 
 This is an experimental OpenAI Realtime API client for Python and LlamaIndex. It integrates with LlamaIndex's tools, allowing you to quickly build custom voice assistants.
 
