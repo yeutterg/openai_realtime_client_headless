@@ -1,47 +1,64 @@
 import asyncio
+import logging
 
 class InputHandler:
     """
     Handles input for the chatbot in a headless environment.
     """
-    def __init__(self, external_queue: asyncio.Queue):
+    def __init__(self, external_queue: asyncio.Queue, loop: asyncio.AbstractEventLoop):
         """
         Initializes the InputHandler.
 
         Args:
             external_queue (asyncio.Queue): Queue to receive external button press events.
+            loop (asyncio.AbstractEventLoop): Reference to the asyncio event loop.
         """
         self.text_input = ""
         self.text_ready = asyncio.Event()
         self.command_queue = asyncio.Queue()
         self.external_queue = external_queue
-        self.loop = asyncio.get_event_loop()
+        self.loop = loop
         self.running = False
+
+        # Configure logging for InputHandler
+        logging.basicConfig(
+            level=logging.INFO,
+            format='%(asctime)s [%(levelname)s] [InputHandler] %(message)s',
+            handlers=[
+                logging.StreamHandler()
+            ]
+        )
 
     async def process_commands(self):
         """
         Asynchronously processes incoming commands from both internal and external sources.
         """
+        logging.info("InputHandler started processing commands.")
         while self.running:
-            # Wait for either internal commands or external button presses
-            done, pending = await asyncio.wait(
-                [
-                    asyncio.create_task(self.command_queue.get()),
-                    asyncio.create_task(self.external_queue.get())
-                ],
-                return_when=asyncio.FIRST_COMPLETED
-            )
+            try:
+                # Wait for either internal commands or external button presses
+                done, pending = await asyncio.wait(
+                    [
+                        asyncio.create_task(self.command_queue.get()),
+                        asyncio.create_task(self.external_queue.get())
+                    ],
+                    return_when=asyncio.FIRST_COMPLETED
+                )
 
-            for task in done:
-                result = task.result()
-                if isinstance(result, tuple):
-                    # Internal command
-                    command, data = result
-                    await self.handle_command(command, data)
-                else:
-                    # External button press
-                    button = result
-                    await self.handle_button_press(button)
+                for task in done:
+                    result = task.result()
+                    if isinstance(result, tuple):
+                        # Internal command
+                        command, data = result
+                        await self.handle_command(command, data)
+                    else:
+                        # External button press
+                        button = result
+                        await self.handle_button_press(button)
+            except Exception as e:
+                logging.error(f"Error processing commands: {e}")
+
+        logging.info("InputHandler stopped processing commands.")
 
     async def handle_command(self, command, data):
         """
@@ -51,18 +68,20 @@ class InputHandler:
             command (str): The command type.
             data (Any): Additional data associated with the command.
         """
+        logging.info(f"Handling command: {command} with data: {data}")
         if command == 'space':
             self.text_input += ' '
         elif command == 'enter':
             self.text_ready.set()
             # You can process the entered text here
-            print(f"User Input: {self.text_input}")
+            logging.info(f"User Input: {self.text_input}")
             self.text_input = ""
         elif command == 'r':
-            # Handle 'r' command
+            logging.info("Handled 'r' command.")
+            # Implement the functionality for 'r' command here
             pass
         elif command == 'q':
-            # Handle 'q' command (e.g., quit)
+            logging.info("Handled 'q' command. Stopping InputHandler.")
             self.running = False
         elif isinstance(command, str):
             self.text_input += command
@@ -74,6 +93,7 @@ class InputHandler:
         Args:
             button (str): The button identifier.
         """
+        logging.info(f"Handling button press: {button}")
         if button == 'space':
             await self.handle_command('space', None)
         elif button == 'enter':
@@ -90,6 +110,7 @@ class InputHandler:
         """
         Starts the input processing loop.
         """
+        logging.info("Starting InputHandler.")
         self.running = True
         self.loop.create_task(self.process_commands())
 
@@ -97,4 +118,5 @@ class InputHandler:
         """
         Stops the input processing loop.
         """
+        logging.info("Stopping InputHandler.")
         self.running = False
